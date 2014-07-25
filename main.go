@@ -9,9 +9,17 @@ import (
 )
 
 type GoodBad struct {
+	Line      string `json:"line,omitempty"`
 	Imei      string `json:"imei,omitempty"`
 	Status    string `json:"status,omitempty"`
 	Timestamp uint32 `json:"timestamp,omitempty"`
+}
+
+type LineStatus struct {
+	Line   string `json:"line,omitempty"`
+	Goods  uint32 `json:"goods,omitempty"`
+	Bads   uint32 `json:"bads,omitempty"`
+	Status string `json:"status,omitempty"`
 }
 
 func PostGoodBad(w rest.ResponseWriter, req *rest.Request) {
@@ -20,7 +28,14 @@ func PostGoodBad(w rest.ResponseWriter, req *rest.Request) {
 		panic(err)
 	}
 
-	w.WriteJson(goodBad)
+	lineStatus := LineStatus{
+		Line:   goodBad.Line,
+		Goods:  10,
+		Bads:   2,
+		Status: "good",
+	}
+
+	w.WriteJson(lineStatus)
 }
 
 func main() {

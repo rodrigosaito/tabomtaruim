@@ -1,0 +1,15 @@
+{
+	"ImportPath": "github.com/rodrigosaito/tabomtaruim",
+	"GoVersion": "go1.3",
+	"Deps": [
+		{
+			"ImportPath": "github.com/ant0ine/go-json-rest/rest",
+			"Comment": "v2.0.4-2-g5fe7b58",
+			"Rev": "5fe7b5851eda5fd04e3b1fd99371231091ef71ec"
+		},
+		{
+			"ImportPath": "github.com/stretchr/testify/assert",
+			"Rev": "ed6ea184117f7ae3168d1c05dbdbde1a86e2be68"
+		}
+	]
+}
