@@ -43,5 +43,5 @@ func main() {
 	handler.SetRoutes(
 		&rest.Route{"POST", "/good_bad", PostGoodBad},
 	)
-	http.ListenAndServe(":8080", &handler)
+	http.ListenAndServe(":"+os.Getenv("PORT"), &handler)
 }
