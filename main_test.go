@@ -10,8 +10,15 @@ import (
 
 func prepareHandler() rest.ResourceHandler {
 	handler := rest.ResourceHandler{}
+
+	api := &GoodBadApi{
+		MongoUrl: "localhost",
+		DbName:   "good_bad_test",
+	}
+	api.Init()
+
 	handler.SetRoutes(
-		&rest.Route{"POST", "/good_bad", PostGoodBad},
+		rest.RouteObjectMethod("POST", "/good_bad", api, "PostGoodBad"),
 	)
 
 	return handler
