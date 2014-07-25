@@ -2,6 +2,7 @@ package main
 
 import (
 	"net/http"
+	"os"
 
 	"github.com/ant0ine/go-json-rest/rest"
 	// "gopkg.in/mgo.v2"
