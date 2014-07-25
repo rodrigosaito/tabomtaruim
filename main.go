@@ -74,11 +74,21 @@ func main() {
 		port = "8080"
 	}
 
+	mongoUrl := os.Getenv("MONGOHQ_URL")
+	if mongoUrl == "" {
+		mongoUrl = "localhost"
+	}
+
+	mongoDbName := os.Getenv("MONGO_DATABASE_NAME")
+	if mongoDbName == "" {
+		mongoDbName = "good_bad_dev"
+	}
+
 	handler := rest.ResourceHandler{}
 
 	api := &GoodBadApi{
-		MongoUrl: "localhost",
-		DbName:   "good_bad_dev",
+		MongoUrl: mongoUrl,
+		DbName:   mongoDbName,
 	}
 	api.Init()
 
