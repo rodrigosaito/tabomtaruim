@@ -17,4 +17,5 @@ func TestFind(t *testing.T) {
 	db := session.DB("good_bad_test")
 
 	db.C("good_bad")
+
 }
