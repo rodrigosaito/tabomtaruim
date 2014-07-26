@@ -44,6 +44,10 @@ func (api *GoodBadApi) PostGoodBad(w rest.ResponseWriter, req *rest.Request) {
 	w.WriteJson(lineStatus)
 }
 
+type Live struct {
+	Status string
+}
+
 func main() {
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -69,6 +73,11 @@ func main() {
 	api.Init()
 
 	handler.SetRoutes(
+		&rest.Route{"GET", "/live", func(w rest.ResponseWriter, req *rest.Request) {
+			w.WriteJson(&Live{
+				Status: "I'm alive!",
+			})
+		}},
 		rest.RouteObjectMethod("POST", "/good_bad", api, "PostGoodBad"),
 	)
 	http.ListenAndServe(":"+port, &handler)
