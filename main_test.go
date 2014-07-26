@@ -3,6 +3,8 @@ package main
 import (
 	"testing"
 
+	"github.com/rodrigosaito/tabomtaruim/models"
+
 	"github.com/ant0ine/go-json-rest/rest"
 	"github.com/ant0ine/go-json-rest/rest/test"
 	"github.com/stretchr/testify/assert"
@@ -28,12 +30,12 @@ func TestPostGoodBad(t *testing.T) {
 	handler := prepareHandler()
 
 	recorded := test.RunRequest(t, &handler,
-		test.MakeSimpleRequest("POST", "http://1.2.3.4/good_bad", GoodBad{"cptm-9", "123321", "", 0}))
+		test.MakeSimpleRequest("POST", "http://1.2.3.4/good_bad", models.GoodBad{"cptm-9", "123321", "", 0}))
 
 	recorded.CodeIs(200)
 	recorded.ContentTypeIsJson()
 
-	lineStatus := &LineStatus{}
+	lineStatus := &models.LineStatus{}
 
 	recorded.DecodeJsonPayload(lineStatus)
 
