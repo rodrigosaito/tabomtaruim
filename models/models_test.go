@@ -2,13 +2,14 @@ package models
 
 import (
 	"testing"
+	"time"
 
 	"gopkg.in/mgo.v2"
 
-	// "github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/assert"
 )
 
-func TestFind(t *testing.T) {
+func TestSave(t *testing.T) {
 	session, err := mgo.Dial("localhost")
 	if err != nil {
 		panic(err)
@@ -16,6 +17,17 @@ func TestFind(t *testing.T) {
 
 	db := session.DB("good_bad_test")
 
-	db.C("good_bad")
+	before := GoodBadCount(db)
 
+	goodBad := GoodBad{
+		Line:      "cptm-9",
+		Imei:      "123321",
+		Status:    "good",
+		Timestamp: time.Now().Unix(),
+	}
+
+	goodBad.Save(db)
+
+	after := GoodBadCount(db)
+	assert.Equal(t, before+1, after)
 }

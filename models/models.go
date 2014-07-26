@@ -9,15 +9,24 @@ type GoodBad struct {
 	Line      string `json:"line,omitempty"`
 	Imei      string `json:"imei,omitempty"`
 	Status    string `json:"status,omitempty"`
-	Timestamp uint32 `json:"timestamp,omitempty"`
+	Timestamp int64  `json:"timestamp,omitempty"`
 }
 
-func (gb *GoodBad) Collection(db *mgo.Database) *mgo.Collection {
+func Collection(db *mgo.Database) *mgo.Collection {
 	return db.C("good_bad")
 }
 
+func GoodBadCount(db *mgo.Database) int {
+	count, err := Collection(db).Count()
+	if err != nil {
+		panic(err)
+	}
+
+	return count
+}
+
 func (gb *GoodBad) Save(db *mgo.Database) {
-	if err := gb.Collection(db).Insert(gb); err != nil {
+	if err := Collection(db).Insert(gb); err != nil {
 		panic(err)
 	}
 }
