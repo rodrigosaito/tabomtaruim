@@ -3,6 +3,8 @@ package models
 import (
 	"testing"
 
+	"gopkg.in/mgo.v2"
+
 	// "github.com/stretchr/testify/assert"
 )
 
@@ -12,5 +14,7 @@ func TestFind(t *testing.T) {
 		panic(err)
 	}
 
-	api.Db = session.DB("good_bad_test")
+	db := session.DB("good_bad_test")
+
+	db.C("good_bad")
 }
