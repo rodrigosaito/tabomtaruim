@@ -2,7 +2,6 @@ package models
 
 import (
 	"testing"
-	"time"
 
 	"gopkg.in/mgo.v2"
 
@@ -20,14 +19,18 @@ func TestSave(t *testing.T) {
 	before := GoodBadCount(db)
 
 	goodBad := GoodBad{
-		Line:      "cptm-9",
-		Imei:      "123321",
-		Status:    "good",
-		Timestamp: time.Now().Unix(),
+		Line:   "cptm-9",
+		Imei:   "123321",
+		Status: "good",
+		// Timestamp: time.Now().Unix(),
 	}
 
 	goodBad.Save(db)
 
 	after := GoodBadCount(db)
 	assert.Equal(t, before+1, after)
+
+	if goodBad.Timestamp == 0 {
+		t.Error("Should set current timestamp before saving")
+	}
 }

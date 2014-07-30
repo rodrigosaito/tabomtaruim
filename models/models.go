@@ -1,8 +1,9 @@
 package models
 
 import (
+	"time"
+
 	"gopkg.in/mgo.v2"
-	// "gopkg.in/mgo.v2/bson"
 )
 
 type GoodBad struct {
@@ -26,6 +27,8 @@ func GoodBadCount(db *mgo.Database) int {
 }
 
 func (gb *GoodBad) Save(db *mgo.Database) {
+	gb.Timestamp = time.Now().Unix()
+
 	if err := Collection(db).Insert(gb); err != nil {
 		panic(err)
 	}

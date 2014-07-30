@@ -30,7 +30,7 @@ func TestPostGoodBad(t *testing.T) {
 	handler := prepareHandler()
 
 	recorded := test.RunRequest(t, &handler,
-		test.MakeSimpleRequest("POST", "http://1.2.3.4/good_bad", models.GoodBad{"cptm-9", "123321", "", 0}))
+		test.MakeSimpleRequest("POST", "http://1.2.3.4/good_bad", models.GoodBad{"cptm-9", "123321", "good", 0}))
 
 	recorded.CodeIs(200)
 	recorded.ContentTypeIsJson()
