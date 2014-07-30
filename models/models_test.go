@@ -22,7 +22,6 @@ func TestSave(t *testing.T) {
 		Line:   "cptm-9",
 		Imei:   "123321",
 		Status: "good",
-		// Timestamp: time.Now().Unix(),
 	}
 
 	goodBad.Save(db)
