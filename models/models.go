@@ -1,6 +1,7 @@
 package models
 
 import (
+	"fmt"
 	"time"
 
 	"gopkg.in/mgo.v2"
@@ -56,10 +57,56 @@ func (gb *GoodBad) Save() {
 	}
 }
 
+func (gb *GoodBad) GoodCount(db *mgo.Database) int {
+	val, err := Collection(db).Find(bson.M{"status": "good", "line": gb.Line}).Count()
+
+	if err != nil {
+		panic(err)
+	}
+
+	if val == 0 {
+		return 0
+	} else {
+		return val
+	}
+}
+
+func (gb *GoodBad) BadCount(db *mgo.Database) int {
+	val, err := Collection(db).Find(bson.M{"status": "bad", "line": gb.Line}).Count()
+
+	if err != nil {
+		panic(err)
+	}
+
+	if val == 0 {
+		return 0
+	} else {
+		return val
+	}
+}
+
+func (gb *GoodBad) Decision(db *mgo.Database) string {
+	goods, err := Collection(db).Find(bson.M{"status": "goods", "line": gb.Line}).Count()
+	bads, err := Collection(db).Find(bson.M{"status": "bads", "line": gb.Line}).Count()
+
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Printf("%v\n", goods)
+	fmt.Printf("%v\n", bads)
+
+	if goods >= bads {
+		return "good"
+	} else {
+		return "bad"
+	}
+}
+
 type LineStatus struct {
 	Line   string `json:"line,omitempty"`
-	Goods  uint32 `json:"goods,omitempty"`
-	Bads   uint32 `json:"bads,omitempty"`
+	Goods  int    `json:"goods,omitempty"`
+	Bads   int    `json:"bads,omitempty"`
 	Status string `json:"status,omitempty"`
 }
 
