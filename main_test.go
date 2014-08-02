@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func prepareHandler() rest.ResourceHandler {
+func prepareHandler() (rest.ResourceHandler, *GoodBadApi) {
 	handler := rest.ResourceHandler{}
 
 	api := &GoodBadApi{
@@ -18,16 +18,17 @@ func prepareHandler() rest.ResourceHandler {
 		DbName:   "good_bad_test",
 	}
 	api.Init()
+	api.Db.DropDatabase()
 
 	handler.SetRoutes(
 		rest.RouteObjectMethod("POST", "/good_bad", api, "PostGoodBad"),
 	)
 
-	return handler
+	return handler, api
 }
 
 func TestPostGoodBad(t *testing.T) {
-	handler := prepareHandler()
+	handler, _ := prepareHandler()
 
 	recorded := test.RunRequest(t, &handler,
 		test.MakeSimpleRequest("POST", "http://1.2.3.4/good_bad", models.GoodBad{"cptm-9", "123321", "good", 0}))
@@ -43,4 +44,52 @@ func TestPostGoodBad(t *testing.T) {
 	assert.Equal(t, 10, lineStatus.Goods)
 	assert.Equal(t, 2, lineStatus.Bads)
 	assert.Equal(t, "good", lineStatus.Status)
+}
+
+func TestDoublePostGoodBad(t *testing.T) {
+	handler, _ := prepareHandler()
+
+	recorded1 := test.RunRequest(t, &handler,
+		test.MakeSimpleRequest("POST", "http://1.2.3.4/good_bad", models.GoodBad{"cptm-9", "123321", "good", 0}))
+	recorded1.CodeIs(200)
+
+	recorded2 := test.RunRequest(t, &handler,
+		test.MakeSimpleRequest("POST", "http://1.2.3.4/good_bad", models.GoodBad{"cptm-9", "123321", "bad", 0}))
+	recorded2.CodeIs(400)
+}
+
+func TestPostGoodBadWithVeryOldDeviceLastPost(t *testing.T) {
+	handler, api := prepareHandler()
+
+	// Saves a really old DeviceLastPost to ensure that rate limit is working
+	dlp := &models.DeviceLastPost{
+		Imei:      "123321",
+		Line:      "cptm-9",
+		Timestamp: 123,
+	}
+	dlp.Save(api.Db)
+
+	recorded := test.RunRequest(t, &handler,
+		test.MakeSimpleRequest("POST", "http://1.2.3.4/good_bad", models.GoodBad{"cptm-9", "123321", "good", 0}))
+	recorded.CodeIs(200)
+}
+
+func TestDoublePostGoodBadWithVeryOldDeviceLastPost(t *testing.T) {
+	handler, api := prepareHandler()
+
+	// Saves a really old DeviceLastPost to ensure that rate limit is working
+	dlp := &models.DeviceLastPost{
+		Imei:      "123321",
+		Line:      "cptm-9",
+		Timestamp: 123,
+	}
+	dlp.Save(api.Db)
+
+	recorded1 := test.RunRequest(t, &handler,
+		test.MakeSimpleRequest("POST", "http://1.2.3.4/good_bad", models.GoodBad{"cptm-9", "123321", "good", 0}))
+	recorded1.CodeIs(200)
+
+	recorded2 := test.RunRequest(t, &handler,
+		test.MakeSimpleRequest("POST", "http://1.2.3.4/good_bad", models.GoodBad{"cptm-9", "123321", "bad", 0}))
+	recorded2.CodeIs(400)
 }

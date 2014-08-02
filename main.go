@@ -1,8 +1,10 @@
 package main
 
 import (
+	"errors"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/rodrigosaito/tabomtaruim/models"
 
@@ -13,8 +15,7 @@ import (
 type GoodBadApi struct {
 	MongoUrl string
 	DbName   string
-	// Session  *mgo.Session
-	Db *mgo.Database
+	Db       *mgo.Database
 }
 
 func (api *GoodBadApi) Init() {
@@ -24,12 +25,42 @@ func (api *GoodBadApi) Init() {
 	}
 
 	api.Db = session.DB(api.DbName)
+
+	models.Init(api.Db)
+}
+
+func rateLimit(db *mgo.Database, imei, line string) error {
+	dlp := models.FindDeviceLastPost(db, imei, line)
+
+	neverPost := dlp.Timestamp == 0
+	oldPost := (time.Now().Unix() - dlp.Timestamp) > int64((30 * time.Minute).Seconds())
+
+	if neverPost || oldPost {
+		// Register DeviceLastPost
+		newDlp := &models.DeviceLastPost{
+			Imei:      imei,
+			Line:      line,
+			Timestamp: time.Now().Unix(),
+		}
+
+		newDlp.Save(db)
+
+		return nil
+	}
+
+	return errors.New("Rate limited")
 }
 
 func (api *GoodBadApi) PostGoodBad(w rest.ResponseWriter, req *rest.Request) {
 	goodBad := models.GoodBad{}
 	if err := req.DecodeJsonPayload(&goodBad); err != nil {
 		panic(err)
+	}
+
+	if err := rateLimit(api.Db, goodBad.Imei, goodBad.Line); err != nil {
+		w.WriteHeader(400)
+
+		return
 	}
 
 	goodBad.Save(api.Db)
