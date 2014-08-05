@@ -36,12 +36,12 @@ type GoodBad struct {
 	Timestamp int64  `json:"timestamp,omitempty"`
 }
 
-func GoodBadCountCollection() *mgo.Collection {
+func GoodBadCollection() *mgo.Collection {
 	return db.C("good_bad")
 }
 
 func GoodBadCount() int {
-	count, err := GoodBadCountCollection().Count()
+	count, err := GoodBadCollection().Count()
 	if err != nil {
 		panic(err)
 	}
@@ -52,13 +52,13 @@ func GoodBadCount() int {
 func (gb *GoodBad) Save() {
 	gb.Timestamp = time.Now().Unix()
 
-	if err := GoodBadCountCollection().Insert(gb); err != nil {
+	if err := GoodBadCollection().Insert(gb); err != nil {
 		panic(err)
 	}
 }
 
-func (gb *GoodBad) GoodCount(db *mgo.Database) int {
-	val, err := Collection(db).Find(bson.M{"status": "good", "line": gb.Line}).Count()
+func GoodCount(line string) int {
+	val, err := GoodBadCollection().Find(bson.M{"status": "good", "line": line}).Count()
 
 	if err != nil {
 		panic(err)
@@ -71,8 +71,8 @@ func (gb *GoodBad) GoodCount(db *mgo.Database) int {
 	}
 }
 
-func (gb *GoodBad) BadCount(db *mgo.Database) int {
-	val, err := Collection(db).Find(bson.M{"status": "bad", "line": gb.Line}).Count()
+func BadCount(line string) int {
+	val, err := GoodBadCollection().Find(bson.M{"status": "bad", "line": line}).Count()
 
 	if err != nil {
 		panic(err)
@@ -85,13 +85,9 @@ func (gb *GoodBad) BadCount(db *mgo.Database) int {
 	}
 }
 
-func (gb *GoodBad) Decision(db *mgo.Database) string {
-	goods, err := Collection(db).Find(bson.M{"status": "goods", "line": gb.Line}).Count()
-	bads, err := Collection(db).Find(bson.M{"status": "bads", "line": gb.Line}).Count()
-
-	if err != nil {
-		panic(err)
-	}
+func Decision(line string) string {
+	goods := 1
+	bads := 2
 
 	fmt.Printf("%v\n", goods)
 	fmt.Printf("%v\n", bads)
