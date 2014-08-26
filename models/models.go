@@ -7,8 +7,12 @@ import (
 	"gopkg.in/mgo.v2/bson"
 )
 
-func Init(db *mgo.Database) {
-	c := DeviceLastPostCollection(db)
+var db *mgo.Database
+
+func Init(mdb *mgo.Database) {
+	db = mdb
+
+	c := DeviceLastPostCollection()
 
 	// Unique Index
 	index := mgo.Index{
@@ -31,12 +35,12 @@ type GoodBad struct {
 	Timestamp int64  `json:"timestamp,omitempty"`
 }
 
-func GoodBadCountCollection(db *mgo.Database) *mgo.Collection {
+func GoodBadCountCollection() *mgo.Collection {
 	return db.C("good_bad")
 }
 
-func GoodBadCount(db *mgo.Database) int {
-	count, err := GoodBadCountCollection(db).Count()
+func GoodBadCount() int {
+	count, err := GoodBadCountCollection().Count()
 	if err != nil {
 		panic(err)
 	}
@@ -44,10 +48,10 @@ func GoodBadCount(db *mgo.Database) int {
 	return count
 }
 
-func (gb *GoodBad) Save(db *mgo.Database) {
+func (gb *GoodBad) Save() {
 	gb.Timestamp = time.Now().Unix()
 
-	if err := GoodBadCountCollection(db).Insert(gb); err != nil {
+	if err := GoodBadCountCollection().Insert(gb); err != nil {
 		panic(err)
 	}
 }
@@ -65,20 +69,20 @@ type DeviceLastPost struct {
 	Timestamp int64
 }
 
-func DeviceLastPostCollection(db *mgo.Database) *mgo.Collection {
+func DeviceLastPostCollection() *mgo.Collection {
 	return db.C("device_last_post")
 }
 
-func FindDeviceLastPost(db *mgo.Database, imei, line string) *DeviceLastPost {
+func FindDeviceLastPost(imei, line string) *DeviceLastPost {
 	dlp := DeviceLastPost{Imei: imei, Line: line}
 
-	DeviceLastPostCollection(db).Find(bson.M{"imei": imei, "line": line}).One(&dlp)
+	DeviceLastPostCollection().Find(bson.M{"imei": imei, "line": line}).One(&dlp)
 
 	return &dlp
 }
 
-func (dlp *DeviceLastPost) Save(db *mgo.Database) error {
-	_, err := DeviceLastPostCollection(db).Upsert(bson.M{"imei": dlp.Imei, "line": dlp.Line}, dlp)
+func (dlp *DeviceLastPost) Save() error {
+	_, err := DeviceLastPostCollection().Upsert(bson.M{"imei": dlp.Imei, "line": dlp.Line}, dlp)
 
 	return err
 }

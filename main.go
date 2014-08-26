@@ -1,69 +1,28 @@
 package main
 
 import (
-	"errors"
+	"encoding/json"
+	"flag"
+	"io"
+	"io/ioutil"
+	"log"
 	"net/http"
-	"os"
-	"time"
 
+	"github.com/bmizerany/pat"
 	"github.com/rodrigosaito/tabomtaruim/models"
-
-	"github.com/ant0ine/go-json-rest/rest"
 	"gopkg.in/mgo.v2"
 )
 
-type GoodBadApi struct {
-	MongoUrl string
-	DbName   string
-	Db       *mgo.Database
+type RecordGoodBadApi struct {
 }
 
-func (api *GoodBadApi) Init() {
-	session, err := mgo.Dial(api.MongoUrl)
-	if err != nil {
-		panic(err)
-	}
-
-	api.Db = session.DB(api.DbName)
-
-	models.Init(api.Db)
-}
-
-func rateLimit(db *mgo.Database, imei, line string) error {
-	dlp := models.FindDeviceLastPost(db, imei, line)
-
-	neverPost := dlp.Timestamp == 0
-	oldPost := (time.Now().Unix() - dlp.Timestamp) > int64((30 * time.Minute).Seconds())
-
-	if neverPost || oldPost {
-		// Register DeviceLastPost
-		newDlp := &models.DeviceLastPost{
-			Imei:      imei,
-			Line:      line,
-			Timestamp: time.Now().Unix(),
-		}
-
-		newDlp.Save(db)
-
-		return nil
-	}
-
-	return errors.New("Rate limited")
-}
-
-func (api *GoodBadApi) PostGoodBad(w rest.ResponseWriter, req *rest.Request) {
+func (api *RecordGoodBadApi) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	goodBad := models.GoodBad{}
-	if err := req.DecodeJsonPayload(&goodBad); err != nil {
+	if err := DecodeJsonPayload(req, &goodBad); err != nil {
 		panic(err)
 	}
 
-	if err := rateLimit(api.Db, goodBad.Imei, goodBad.Line); err != nil {
-		w.WriteHeader(400)
-
-		return
-	}
-
-	goodBad.Save(api.Db)
+	goodBad.Save()
 
 	lineStatus := models.LineStatus{
 		Line:   goodBad.Line,
@@ -72,44 +31,65 @@ func (api *GoodBadApi) PostGoodBad(w rest.ResponseWriter, req *rest.Request) {
 		Status: "good",
 	}
 
-	w.WriteJson(lineStatus)
+	w.WriteHeader(http.StatusCreated)
+	WriteJson(w, lineStatus)
 }
 
-type Live struct {
-	Status string
+func DecodeJsonPayload(req *http.Request, v interface{}) error {
+	content, err := ioutil.ReadAll(req.Body)
+	req.Body.Close()
+	if err != nil {
+		return err
+	}
+	err = json.Unmarshal(content, v)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func WriteJson(w http.ResponseWriter, v interface{}) error {
+	bytes, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	_, err = w.Write(bytes)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func LiveCheck(w http.ResponseWriter, req *http.Request) {
+	io.WriteString(w, "I'm alive!!!")
 }
 
 func main() {
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "8080"
+	// configuration
+	var port = flag.String("port", "8080", "port to run server")
+	var mongoUrl = flag.String("mongo-url", "localhost", "url to connect to mongo server")
+	var mongoDbName = flag.String("mongo-db-name", "good_bad_dev", "name of database to persist MongoDB documents")
+	flag.Parse()
+
+	// mongodb connection
+	session, err := mgo.Dial(*mongoUrl)
+	if err != nil {
+		log.Fatal("Can't connect to MongoDB: ", err)
 	}
+	defer session.Close()
+	db := session.DB(*mongoDbName)
 
-	mongoUrl := os.Getenv("MONGOHQ_URL")
-	if mongoUrl == "" {
-		mongoUrl = "localhost"
+	models.Init(db)
+
+	// http server
+	m := pat.New()
+	m.Get("/live", http.HandlerFunc(LiveCheck))
+	m.Post("/good_bad", &RecordGoodBadApi{})
+
+	http.Handle("/", m)
+
+	err = http.ListenAndServe(":"+*port, nil)
+	if err != nil {
+		log.Fatal("ListenAndServe: ", err)
 	}
-
-	mongoDbName := os.Getenv("MONGO_DATABASE_NAME")
-	if mongoDbName == "" {
-		mongoDbName = "good_bad_dev"
-	}
-
-	handler := rest.ResourceHandler{}
-
-	api := &GoodBadApi{
-		MongoUrl: mongoUrl,
-		DbName:   mongoDbName,
-	}
-	api.Init()
-
-	handler.SetRoutes(
-		&rest.Route{"GET", "/live", func(w rest.ResponseWriter, req *rest.Request) {
-			w.WriteJson(&Live{
-				Status: "I'm alive!",
-			})
-		}},
-		rest.RouteObjectMethod("POST", "/good_bad", api, "PostGoodBad"),
-	)
-	http.ListenAndServe(":"+port, &handler)
 }

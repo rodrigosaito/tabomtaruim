@@ -24,8 +24,9 @@ func Db() *mgo.Database {
 
 func TestGoodBadSave(t *testing.T) {
 	db := Db()
+	Init(db)
 
-	before := GoodBadCount(db)
+	before := GoodBadCount()
 
 	goodBad := GoodBad{
 		Line:   "cptm-9",
@@ -33,9 +34,9 @@ func TestGoodBadSave(t *testing.T) {
 		Status: "good",
 	}
 
-	goodBad.Save(db)
+	goodBad.Save()
 
-	after := GoodBadCount(db)
+	after := GoodBadCount()
 	assert.Equal(t, before+1, after)
 
 	if goodBad.Timestamp == 0 {
