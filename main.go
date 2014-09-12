@@ -35,6 +35,22 @@ func (api *RecordGoodBadApi) ServeHTTP(w http.ResponseWriter, req *http.Request)
 	WriteJson(w, lineStatus)
 }
 
+type CheckStatusApi struct {
+}
+
+func (api *CheckStatusApi) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	line := req.URL.Query().Get(":line")
+
+	lineStatus := models.LineStatus{
+		Line:   line,
+		Goods:  models.GoodCount(line),
+		Bads:   models.BadCount(line),
+		Status: "good",
+	}
+
+	WriteJson(w, lineStatus)
+}
+
 func DecodeJsonPayload(req *http.Request, v interface{}) error {
 	content, err := ioutil.ReadAll(req.Body)
 	req.Body.Close()
@@ -85,6 +101,7 @@ func main() {
 	m := pat.New()
 	m.Get("/live", http.HandlerFunc(LiveCheck))
 	m.Post("/good_bad", &RecordGoodBadApi{})
+	m.Get("/good_bad/:line", &CheckStatusApi{})
 
 	http.Handle("/", m)
 
