@@ -1,6 +1,7 @@
 package models
 
 import (
+	"fmt"
 	"time"
 
 	"gopkg.in/mgo.v2"
@@ -35,12 +36,12 @@ type GoodBad struct {
 	Timestamp int64  `json:"timestamp,omitempty"`
 }
 
-func GoodBadCountCollection() *mgo.Collection {
+func GoodBadCollection() *mgo.Collection {
 	return db.C("good_bad")
 }
 
 func GoodBadCount() int {
-	count, err := GoodBadCountCollection().Count()
+	count, err := GoodBadCollection().Count()
 	if err != nil {
 		panic(err)
 	}
@@ -51,15 +52,57 @@ func GoodBadCount() int {
 func (gb *GoodBad) Save() {
 	gb.Timestamp = time.Now().Unix()
 
-	if err := GoodBadCountCollection().Insert(gb); err != nil {
+	if err := GoodBadCollection().Insert(gb); err != nil {
 		panic(err)
+	}
+}
+
+func GoodCount(line string) int {
+	val, err := GoodBadCollection().Find(bson.M{"status": "good", "line": line}).Count()
+
+	if err != nil {
+		panic(err)
+	}
+
+	if val == 0 {
+		return 0
+	} else {
+		return val
+	}
+}
+
+func BadCount(line string) int {
+	val, err := GoodBadCollection().Find(bson.M{"status": "bad", "line": line}).Count()
+
+	if err != nil {
+		panic(err)
+	}
+
+	if val == 0 {
+		return 0
+	} else {
+		return val
+	}
+}
+
+func Decision(line string) string {
+	goods := 1
+	bads := 2
+
+	fmt.Printf("%v\n", goods)
+	fmt.Printf("%v\n", bads)
+
+	if goods >= bads {
+		return "good"
+	} else {
+		return "bad"
 	}
 }
 
 type LineStatus struct {
 	Line   string `json:"line,omitempty"`
-	Goods  uint32 `json:"goods,omitempty"`
-	Bads   uint32 `json:"bads,omitempty"`
+	Goods  int    `json:"goods,omitempty"`
+	Bads   int    `json:"bads,omitempty"`
 	Status string `json:"status,omitempty"`
 }
 
