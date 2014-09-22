@@ -58,7 +58,7 @@ func (gb *GoodBad) Save() {
 }
 
 func GoodCount(line string) int {
-	val, err := GoodBadCollection().Find(bson.M{"status": "good", "line": line}).Count()
+	val, err := GoodBadCollection().Find(bson.M{"status": "good", "line": line, "timestamp": bson.M{"$gt": time.Now().Unix() - 1800}}).Count()
 
 	if err != nil {
 		panic(err)
@@ -72,7 +72,7 @@ func GoodCount(line string) int {
 }
 
 func BadCount(line string) int {
-	val, err := GoodBadCollection().Find(bson.M{"status": "bad", "line": line}).Count()
+	val, err := GoodBadCollection().Find(bson.M{"status": "bad", "line": line, "timestamp": bson.M{"$gt": time.Now().Unix() - 1800}}).Count()
 
 	if err != nil {
 		panic(err)
@@ -86,11 +86,11 @@ func BadCount(line string) int {
 }
 
 func Decision(line string) string {
-	goods := 1
-	bads := 2
+	var goods int = GoodCount(line)
+	var bads int = BadCount(line)
 
-	fmt.Printf("%v\n", goods)
-	fmt.Printf("%v\n", bads)
+	fmt.Printf("Good Count: %v\n", goods)
+	fmt.Printf("Bad Count: %v\n", bads)
 
 	if goods >= bads {
 		return "good"

@@ -28,7 +28,7 @@ func (api *RecordGoodBadApi) ServeHTTP(w http.ResponseWriter, req *http.Request)
 		Line:   goodBad.Line,
 		Goods:  models.GoodCount(goodBad.Line),
 		Bads:   models.BadCount(goodBad.Line),
-		Status: "good",
+		Status: models.Decision(goodBad.Line),
 	}
 
 	w.WriteHeader(http.StatusCreated)
@@ -45,7 +45,7 @@ func (api *CheckStatusApi) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		Line:   line,
 		Goods:  models.GoodCount(line),
 		Bads:   models.BadCount(line),
-		Status: "good",
+		Status: models.Decision(line),
 	}
 
 	WriteJson(w, lineStatus)
