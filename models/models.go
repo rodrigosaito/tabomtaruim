@@ -1,7 +1,7 @@
 package models
 
 import (
-	"fmt"
+	"log"
 	"time"
 
 	"gopkg.in/mgo.v2"
@@ -75,8 +75,7 @@ func Decision(line string) string {
 	var goods int = Count("good", line)
 	var bads int = Count("bad", line)
 
-	fmt.Printf("Good Count: %v\n", goods)
-	fmt.Printf("Bad Count: %v\n", bads)
+	log.Println("Good: ", goods, " Bad: ", bads)
 
 	if goods >= bads {
 		return "good"
