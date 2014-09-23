@@ -1,7 +1,7 @@
 package models
 
 import (
-	"fmt"
+	"log"
 	"time"
 
 	"gopkg.in/mgo.v2"
@@ -57,22 +57,8 @@ func (gb *GoodBad) Save() {
 	}
 }
 
-func GoodCount(line string) int {
-	val, err := GoodBadCollection().Find(bson.M{"status": "good", "line": line}).Count()
-
-	if err != nil {
-		panic(err)
-	}
-
-	if val == 0 {
-		return 0
-	} else {
-		return val
-	}
-}
-
-func BadCount(line string) int {
-	val, err := GoodBadCollection().Find(bson.M{"status": "bad", "line": line}).Count()
+func Count(status string, line string) int {
+	val, err := GoodBadCollection().Find(bson.M{"status": status, "line": line, "timestamp": bson.M{"$gt": time.Now().Unix() - 1800}}).Count()
 
 	if err != nil {
 		panic(err)
@@ -86,11 +72,10 @@ func BadCount(line string) int {
 }
 
 func Decision(line string) string {
-	goods := 1
-	bads := 2
+	var goods int = Count("good", line)
+	var bads int = Count("bad", line)
 
-	fmt.Printf("%v\n", goods)
-	fmt.Printf("%v\n", bads)
+	log.Println("Good: ", goods, " Bad: ", bads)
 
 	if goods >= bads {
 		return "good"
