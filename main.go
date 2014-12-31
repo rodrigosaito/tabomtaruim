@@ -10,7 +10,6 @@ import (
 
 	"github.com/bmizerany/pat"
 	"github.com/rodrigosaito/tabomtaruim/models"
-	"gopkg.in/mgo.v2"
 )
 
 type RecordGoodBadApi struct {
@@ -24,12 +23,7 @@ func (api *RecordGoodBadApi) ServeHTTP(w http.ResponseWriter, req *http.Request)
 
 	goodBad.Save()
 
-	lineStatus := models.LineStatus{
-		Line:   goodBad.Line,
-		Goods:  models.Count("good", goodBad.Line),
-		Bads:   models.Count("bad", goodBad.Line),
-		Status: models.Decision(goodBad.Line),
-	}
+	lineStatus := models.GetLineStatus(goodBad.Line)
 
 	w.WriteHeader(http.StatusCreated)
 	WriteJson(w, lineStatus)
@@ -41,12 +35,7 @@ type CheckStatusApi struct {
 func (api *CheckStatusApi) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	line := req.URL.Query().Get(":line")
 
-	lineStatus := models.LineStatus{
-		Line:   line,
-		Goods:  models.Count("good", line),
-		Bads:   models.Count("bad", line),
-		Status: models.Decision(line),
-	}
+	lineStatus := models.GetLineStatus(line)
 
 	WriteJson(w, lineStatus)
 }
@@ -88,14 +77,7 @@ func main() {
 	flag.Parse()
 
 	// mongodb connection
-	session, err := mgo.Dial(*mongoUrl)
-	if err != nil {
-		log.Fatal("Can't connect to MongoDB: ", err)
-	}
-	defer session.Close()
-	db := session.DB(*mongoDbName)
-
-	models.Init(db)
+	models.Init(*mongoUrl, *mongoDbName)
 
 	// http server
 	m := pat.New()
@@ -105,7 +87,7 @@ func main() {
 
 	http.Handle("/", m)
 
-	err = http.ListenAndServe(":"+*port, nil)
+	err := http.ListenAndServe(":"+*port, nil)
 	if err != nil {
 		log.Fatal("ListenAndServe: ", err)
 	}

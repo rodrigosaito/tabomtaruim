@@ -3,30 +3,22 @@ package main
 import (
 	"bytes"
 	"encoding/json"
-	"log"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/rodrigosaito/tabomtaruim/models"
+	"github.com/sfreiberg/mongo"
 	"github.com/stretchr/testify/assert"
-	"gopkg.in/mgo.v2"
 )
 
-func prepareDB() *mgo.Session {
-	// mongodb connection
-	session, err := mgo.Dial("localhost")
-	if err != nil {
-		log.Fatal("Can't connect to MongoDB: ", err)
-		panic(err)
-	}
+func init() {
+	dbName := "good_bad_test_main"
 
-	db := session.DB("good_bad_test")
-	db.DropDatabase()
+	models.Init("localhost", dbName)
 
-	models.Init(db)
-
-	return session
+	session, _ := mongo.GetSession()
+	session.DB(dbName).DropDatabase()
 }
 
 func postGoodBadTest(v interface{}) (*models.LineStatus, *httptest.ResponseRecorder) {
@@ -49,9 +41,6 @@ func postGoodBadTest(v interface{}) (*models.LineStatus, *httptest.ResponseRecor
 }
 
 func TestPostGoodBad(t *testing.T) {
-	session := prepareDB()
-	defer session.Close()
-
 	lineStatus, w := postGoodBadTest(&models.GoodBad{"cptm-9", "123", "good", 0})
 
 	assert.Equal(t, http.StatusCreated, w.Code)
@@ -64,9 +53,6 @@ func TestPostGoodBad(t *testing.T) {
 
 func TestDoublePostGoodBad(t *testing.T) {
 	t.SkipNow() // Skipping this test until rate limit is implemented
-
-	session := prepareDB()
-	defer session.Close()
 
 	goodBad := &models.GoodBad{"cptm-9", "1234567890", "good", 0}
 

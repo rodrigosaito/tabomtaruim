@@ -1,32 +1,18 @@
 package models
 
 import (
-	"log"
 	"time"
 
-	"gopkg.in/mgo.v2"
-	"gopkg.in/mgo.v2/bson"
+	"github.com/sfreiberg/mongo"
+	"labix.org/v2/mgo/bson"
 )
 
-var db *mgo.Database
-
-func Init(mdb *mgo.Database) {
-	db = mdb
-
-	c := DeviceLastPostCollection()
-
-	// Unique Index
-	index := mgo.Index{
-		Key:        []string{"Imei", "line"},
-		Unique:     true,
-		DropDups:   true,
-		Background: true,
-		Sparse:     true,
-	}
-
-	if err := c.EnsureIndex(index); err != nil {
+func Init(server, database string) {
+	if err := mongo.SetServers(server, database); err != nil {
 		panic(err)
 	}
+
+	// TODO add unique index
 }
 
 type GoodBad struct {
@@ -36,52 +22,12 @@ type GoodBad struct {
 	Timestamp int64  `json:"timestamp,omitempty"`
 }
 
-func GoodBadCollection() *mgo.Collection {
-	return db.C("good_bad")
-}
+func (self *GoodBad) Save() error {
+	self.Timestamp = time.Now().Unix()
 
-func GoodBadCount() int {
-	count, err := GoodBadCollection().Count()
-	if err != nil {
-		panic(err)
-	}
+	err := mongo.Insert(self)
 
-	return count
-}
-
-func (gb *GoodBad) Save() {
-	gb.Timestamp = time.Now().Unix()
-
-	if err := GoodBadCollection().Insert(gb); err != nil {
-		panic(err)
-	}
-}
-
-func Count(status string, line string) int {
-	val, err := GoodBadCollection().Find(bson.M{"status": status, "line": line, "timestamp": bson.M{"$gt": time.Now().Unix() - 1800}}).Count()
-
-	if err != nil {
-		panic(err)
-	}
-
-	if val == 0 {
-		return 0
-	} else {
-		return val
-	}
-}
-
-func Decision(line string) string {
-	var goods int = Count("good", line)
-	var bads int = Count("bad", line)
-
-	log.Println("Good: ", goods, " Bad: ", bads)
-
-	if goods >= bads {
-		return "good"
-	} else {
-		return "bad"
-	}
+	return err
 }
 
 type LineStatus struct {
@@ -91,26 +37,48 @@ type LineStatus struct {
 	Status string `json:"status,omitempty"`
 }
 
+func GetLineStatus(line string) LineStatus {
+	goodCount := count("good", line)
+	badCount := count("bad", line)
+	decision := decision(goodCount, badCount)
+
+	return LineStatus{
+		Line:   line,
+		Goods:  goodCount,
+		Bads:   badCount,
+		Status: decision,
+	}
+}
+
+func decision(goods, bads int) string {
+	if goods >= bads {
+		return "good"
+	}
+
+	return "bad"
+}
+
+func count(status string, line string) int {
+	result := &[]GoodBad{}
+	err := mongo.Find(result, bson.M{"status": status, "line": line, "timestamp": bson.M{"$gt": time.Now().Unix() - 1800}})
+
+	if err != nil {
+		panic(err)
+	}
+
+	return len(*result)
+}
+
 type DeviceLastPost struct {
 	Imei      string
 	Line      string
 	Timestamp int64
 }
 
-func DeviceLastPostCollection() *mgo.Collection {
-	return db.C("device_last_post")
-}
-
 func FindDeviceLastPost(imei, line string) *DeviceLastPost {
 	dlp := DeviceLastPost{Imei: imei, Line: line}
 
-	DeviceLastPostCollection().Find(bson.M{"imei": imei, "line": line}).One(&dlp)
+	//DeviceLastPostCollection().Find(bson.M{"imei": imei, "line": line}).One(&dlp)
 
 	return &dlp
-}
-
-func (dlp *DeviceLastPost) Save() error {
-	_, err := DeviceLastPostCollection().Upsert(bson.M{"imei": dlp.Imei, "line": dlp.Line}, dlp)
-
-	return err
 }

@@ -3,70 +3,60 @@ package models
 import (
 	"testing"
 
-	"gopkg.in/mgo.v2"
-
+	"github.com/sfreiberg/mongo"
 	"github.com/stretchr/testify/assert"
-
-	// "gopkg.in/mgo.v2/bson"
 )
 
-func Db() *mgo.Database {
-	session, err := mgo.Dial("localhost")
-	if err != nil {
-		panic(err)
-	}
+func init() {
+	dbName := "good_bad_test_models"
 
-	db := session.DB("good_bad_test")
-	db.DropDatabase()
+	Init("localhost", dbName)
 
-	Init(db)
-
-	return db
+	session, _ := mongo.GetSession()
+	session.DB(dbName).DropDatabase()
 }
 
 func TestGoodBadSave(t *testing.T) {
-	db := Db()
-	Init(db)
-
-	before := GoodBadCount()
-
-	goodBad := GoodBad{
+	goodBad := &GoodBad{
 		Line:   "cptm-9",
 		Imei:   "123321",
 		Status: "good",
 	}
 
-	goodBad.Save()
-
-	after := GoodBadCount()
-	assert.Equal(t, before+1, after)
+	if err := goodBad.Save(); err != nil {
+		t.Error("Failed to save GoodBad")
+	}
 
 	if goodBad.Timestamp == 0 {
-		t.Error("Should set current timestamp before saving")
+		t.Error("Timestamp should be set before saving")
 	}
+}
+
+func TestGetLineStatus(t *testing.T) {
+	// Insert test data
+	gb1 := &GoodBad{Line: "metro-4", Imei: "1234", Status: "good"}
+	gb2 := &GoodBad{Line: "metro-4", Imei: "1235", Status: "bad"}
+	gb3 := &GoodBad{Line: "metro-4", Imei: "1236", Status: "good"}
+
+	gb1.Save()
+	gb2.Save()
+	gb3.Save()
+
+	// Test
+	status := GetLineStatus("metro-4")
+
+	assert.Equal(t, "metro-4", status.Line, "should return the correct line status")
+	assert.Equal(t, 2, status.Goods)
+	assert.Equal(t, 1, status.Bads)
+	assert.Equal(t, "good", status.Status)
+}
+
+func TestDecision(t *testing.T) {
+	assert.Equal(t, "good", decision(10, 1), "should be 'good' when goods are greater")
+	assert.Equal(t, "bad", decision(1, 10), "should be 'bad' when goods are smaller")
+	assert.Equal(t, "good", decision(10, 10), "should be 'good' when goods are equal bads")
 }
 
 func TestGoodCountBefore30Minutes(t *testing.T) {
 	t.SkipNow()
-	db := Db()
-	Init(db)
-
-	before := Count("good", "cptm-9")
-
-	goodBad := GoodBad{
-		Line:   "cptm-9",
-		Imei:   "123321",
-		Status: "good",
-	}
-
-	goodBad.Save()
-
-	// db.C("good_bad").UpdateAll(bson.M{}, bson.M{"timestamp": "1411424203"})
-
-	after := GoodBadCount()
-	assert.Equal(t, before, after)
-
-	if goodBad.Timestamp == 0 {
-		t.Error("Should set current timestamp before saving")
-	}
 }
