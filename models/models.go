@@ -1,6 +1,7 @@
 package models
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/sfreiberg/mongo"
@@ -24,6 +25,10 @@ type GoodBad struct {
 
 func (self *GoodBad) Save() error {
 	self.Timestamp = time.Now().Unix()
+
+	if GetDeviceLastPost(self.Imei, self.Line).Timestamp > time.Now().Unix()-300 {
+		return fmt.Errorf("Rate Limit Error")
+	}
 
 	err := mongo.Insert(self)
 
@@ -75,10 +80,9 @@ type DeviceLastPost struct {
 	Timestamp int64
 }
 
-func FindDeviceLastPost(imei, line string) *DeviceLastPost {
-	dlp := DeviceLastPost{Imei: imei, Line: line}
+func GetDeviceLastPost(imei, line string) *DeviceLastPost {
+	lastGb := &GoodBad{}
+	mongo.Find(lastGb, bson.M{"$query": bson.M{"imei": imei, "line": line}, "$orderby": bson.M{"timestamp": -1}})
 
-	//DeviceLastPostCollection().Find(bson.M{"imei": imei, "line": line}).One(&dlp)
-
-	return &dlp
+	return &DeviceLastPost{Imei: imei, Line: line, Timestamp: lastGb.Timestamp}
 }

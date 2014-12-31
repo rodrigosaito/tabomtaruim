@@ -21,7 +21,10 @@ func (api *RecordGoodBadApi) ServeHTTP(w http.ResponseWriter, req *http.Request)
 		panic(err)
 	}
 
-	goodBad.Save()
+	if err := goodBad.Save(); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
 
 	lineStatus := models.GetLineStatus(goodBad.Line)
 
